@@ -1,0 +1,114 @@
+1) Задание №1 Повторить все действия преподавателя на вебинаре.
+
+USE vk;
+
+SELECT * FROM media_types;
+
+TRUNCATE media_types; 
+
+INSERT INTO media_types (name) VALUES
+	('photo'),
+	('video'),
+	('audio');
+	
+SELECT * FROM media LIMIT 10;
+
+UPDATE media SET
+	media_type_id = FLOOR(1 + RAND() * 3);
+
+UPDATE media SET
+	user_id = FLOOR(1 + RAND() * 100);
+
+UPDATE media SET filename = CONCAT('https://dropbox.com/vk/', filename);
+
+SELECT * FROM messages WHERE from_user_id = to_user_id;
+
+CREATE TEMPORARY TABLE exts (name VARCHAR(10));
+
+INSERT INTO exts VALUES ('gif'), ('avi'), ('jpeg');
+
+SELECT * from exts;
+
+SELECT name FROM exts ORDER BY RAND() LIMIT 1;
+
+UPDATE media SET filename = 
+	CONCAT('https://dropbox.com/vk/', 
+	FLOOR(10000 + RAND() * 20000),
+	'.',
+	(SELECT name FROM exts ORDER BY RAND() LIMIT 1));
+
+UPDATE media SET size = FLOOR(10000 + RAND() * 1000000) WHERE size < 1000;
+
+UPDATE media SET metadata = CONCAT('{"owner":"',
+	(SELECT CONCAT(first_name, ' ', last_name) FROM users WHERE id = user_id),
+	'"}');
+
+SELECT * FROM media LIMIT 10;
+
+DESC media;
+
+ALTER TABLE media MODIFY COLUMN metadata JSON;
+
+SELECT * FROM friendship LIMIT 10;
+
+UPDATE friendship SET
+	user_id = FLOOR(1 + RAND() * 100),
+	friend_id = FLOOR(1 + RAND() * 100);
+
+SELECT * FROM friendship_statuses;
+
+TRUNCATE friendship_statuses;
+
+INSERT INTO friendship_statuses (name) VALUES
+	('Requested'),
+	('Confirmed'),
+	('Rejected');
+	
+UPDATE friendship SET
+	status_id = FLOOR(1 + RAND() * 3);
+
+SELECT * FROM communities;
+
+DELETE FROM communities WHERE id > 20;
+
+SELECT * FROM communities_users;
+
+UPDATE communities_users SET
+	community_id = FLOOR(1 + RAND() * 20);
+
+DESC messages;
+ALTER TABLE messages MODIFY COLUMN community_id INT UNSIGNED;
+
+
+
+2) Задание №3 (Реализация лайков)
+
+
+В нашей реализации БД и с учетом особенностей работы соцсети ВК лайки можно ставить только:
+a) Фото профиля
+б) Часть медиаконтента: фото и видео
+
+Ничего другого мы не описали в нашей БД (как например записи на стене и проч.) поэтому остановимся только на указанных 
+типах контента.
+
+Не до конца еще разобрался с темой, но возможно "photo_id" из таблицы "profiles" должна ссылаться на "id" в таблице "media",
+т.е. вся контентная часть: фото (в т.ч. и фото профиля), видео, аудио и т.д. - должна быть описана в одной таблице "media".
+
+Поэтому в данной реализации таблица лайков состоит из столбцов: 
+1) "like_id" - номер лайка (т.к. каждый лайк уникален) 
+2) "from_user_id" - от кого лайк, т.к. лайк может быть поставлен только от конкретного пользователя (одного)
+3) "to_user_id" - кому лайк, т.к. лайк может быть поставлен только конкретному пользователю (одного)
+4) "media_id" - это номер в таблица "media" т.е ссылаемся на конкретное фото или видео, которому был поставлен лайк. Тут необходимо учесть,
+что лайк одному и тому же фото, например, не может быть поставлен дважды от одного пользователя, т.е. в таблицу не может попасть случай
+при котором id разный, а отправитель-получатель и конкретный медиаконтент одни и те же, но пока не знаю как это реализовать.
+Также пока не знаю как реализовать с помощью команд удаление строчки из таблицы "likes" - она должна происходить, когда пользователь 
+решил убрать лайк, такие случаи также бывают.
+
+Ниже команды для описания таблицы "likes"
+
+CREATE TABLE likes (
+  like_id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,   # Каждый лайк должен быть уникален
+  from_user_id INT UNSIGNED NOT NULL,                         # Запись от кого был лайк
+  to_user_id INT UNSIGNED NOT NULL,                           # Запись кому был лайк
+  media_id INT UNSIGNED NOT NULL                              # Ссылка на конкретную строчку в таблице "media"
+);
